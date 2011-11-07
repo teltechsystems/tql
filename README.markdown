@@ -1,4 +1,7 @@
-This library allows supplying a SQL query and a list of models allowed to query on and return a query object. It is similar to Facebook's [FQL](http://developers.facebook.com/docs/reference/fql/)
+TelTech Query Language
+======================
+
+This library provides the ability to perform an end-user SQL query on a list of Django models. It is similar to Facebook's [FQL](http://developers.facebook.com/docs/reference/fql/).
 
 Usage
 -----
