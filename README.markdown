@@ -10,7 +10,7 @@ Usage
     from records.models import Call, DID
     
     allowed_models = [Call, DID]
-    sql = "SELECT * FROM Call WHERE status = 'in-progress'"
+    sql = "SELECT * FROM `Call` WHERE status = 'in-progress'"
     q = tql.parse(sql, allowed_models)
     
     # Do stuff with q, a QuerySet object
