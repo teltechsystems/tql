@@ -10,11 +10,12 @@ def read(fname):
 
 setup(
     name = "tql",
-    version = "0.0.1",
+    version = "0.0.5",
     author = "Teltech Systems",
     author_email = "development@teltechcorp.com",
     description = ("Provides SQL wrapper on top of Django models, similar to Facebook's FQL"),
     url = "https://github.com/teltechsystems/tql",
     packages=['tql'],
     long_description=read('README.markdown'),
+    install_requires=['sqlparse', 'django']
 )

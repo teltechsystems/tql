@@ -3,8 +3,9 @@ This library allows supplying a SQL query and a list of models allowed to query 
 Usage
 -----
 
-    from tql import tqlparse
-    allowed_models = (MyModel, MyModel2, MyModel3)
-    sql = "SELECT * FROM MyModel WHERE first_name = 'John'"
-    q = tqlparse.parse(sql, allowed_models))
+    import tql
+    from records.models import Call, DID
+    allowed_models = [Call, DID]
+    sql = "SELECT * FROM Call WHERE status = 'in-progress'"
+    q = tql.parse(sql, allowed_models)
 
