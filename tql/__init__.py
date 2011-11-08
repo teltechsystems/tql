@@ -1,5 +1,6 @@
 import sqlparse
 from django.db.models import Q
+import re
 
 # TODO!!
 # Support Integer searches
@@ -12,6 +13,10 @@ def parse(raw_sql, allowed_models):
         ">="    : "gte",
         "!="    : "exact"
     }
+
+    raw_sql = re.sub(r'\s\'([^\s])\'\s?', r' "\1"', raw_sql)
+
+    print "RAW SQL: %s" % raw_sql
 
     token_list = sqlparse.parse(raw_sql)[0]
     
@@ -26,7 +31,7 @@ def parse(raw_sql, allowed_models):
         
         print "Equality Token: %s" % equality_token
 
-        value_token = comparison_token_list.token_next_by_instance(comparison_token_list.token_index(equality_token), sqlparse.sql.Identifier)
+        value_token = comparison_token_list.token_next_by_instance(comparison_token_list.token_index(equality_token), (sqlparse.sql.Identifier, sqlparse.sql.Comment, ))
         
         print "Value Token: %s" % value_token
 
@@ -151,8 +156,8 @@ def parse(raw_sql, allowed_models):
 
         print "FINAL Q: %s" % q
 
-        related_manager = model.objects.filter(q)
+        query_set = model.objects.filter(q)
     else:
-        related_manager = model.objects.all()
+        query_set = model.objects.all()
 
-    return related_manager
+    return query_set
