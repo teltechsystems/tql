@@ -142,8 +142,7 @@ def parse(raw_sql, allowed_models):
             index += 1
         
         return q
-    
-    # Replace single quotations with double quotations
+
     raw_sql = re.sub(r'\s\'([^\s])\'\s?', r' "\1"', raw_sql)
 
     print "RAW SQL: %s" % raw_sql
@@ -172,7 +171,11 @@ def parse(raw_sql, allowed_models):
     print "Discovered Model %s" % model
     
     # Handle search criteria
-    where_list = token_list.token_next_by_instance(token_list.token_index(next_token), sqlparse.sql.Where)
+    current_index = token_list.token_index(next_token)
+
+    where_list = token_list.token_next_by_instance(current_index, sqlparse.sql.Where)
+    order_by = token_list.token_next_match(current_index, sqlparse.tokens.Keyword, ["ORDER"])
+    limit_token = token_list.token_next_match(current_index, sqlparse.tokens.Keyword, "LIMIT")
 
     if where_list:
         q = iterate_token_list(where_list)
@@ -182,5 +185,49 @@ def parse(raw_sql, allowed_models):
         query_set = model.objects.filter(q)
     else:
         query_set = model.objects.all()
+    
+    if order_by:
+        current_index = token_list.token_index(order_by)
+
+        field_ordering = []
+
+        while True:
+            field_token = token_list.token_next_by_instance(current_index, sqlparse.sql.Identifier)
+
+            if not field_token:
+                break
+            
+            field_value = field_token.to_unicode()
+            
+            order_token = token_list.token_next_match(current_index, sqlparse.tokens.Keyword, ["ASC", "DESC"])
+
+            if order_token and order_token.value.upper() == 'DESC':
+                field_value = '-' + field_value
+            
+            field_ordering.append(field_value)
+
+            current_index = token_list.token_index(order_token or field_token) + 1
+        
+        query_set = query_set.order_by(*field_ordering)
+    
+    if limit_token:
+        current_index = token_list.token_index(limit_token)
+
+        identifier = token_list.token_next_by_type(current_index, sqlparse.tokens.Number)
+
+        if identifier:
+            query_set = query_set[:int(identifier.value)]
+        else:
+            identifier_list = token_list.token_next_by_instance(current_index, sqlparse.sql.IdentifierList)
+
+            if identifier_list:
+                offset_token = identifier_list.token_next_by_type(0, sqlparse.tokens.Number)
+
+                limit_token = identifier_list.token_next_by_type(identifier_list.token_index(offset_token), sqlparse.tokens.Number)
+
+                offset = int(offset_token.value)
+                limit = offset + int(limit_token.value)
+
+                query_set = query_set[offset:limit]
 
     return query_set
