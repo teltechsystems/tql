@@ -42,11 +42,16 @@ def parse(raw_sql, allowed_models):
         
         return None
     
-    def gaaather_search_part(key_token, equality_token, value_token, negate = False):
+    def gather_search_part(key_token, equality_token, value_token, negate = False):
         print "NEGATE? : %s" % negate
 
+        field_value = key_token.to_unicode()
         search_value = value_token.to_unicode().replace('\"','')
 
+        if equality_token.match(sqlparse.tokens.Keyword, "IS"):
+            q_search = ("%s__isnull" % field_value).encode('utf-8')
+
+            search_value = search_value == 'NULL'
         if equality_token.match(sqlparse.tokens.Keyword, "LIKE"):
             start_wildcard = search_value.startswith('%')
             end_wildcard = search_value.endswith('%')
@@ -62,12 +67,12 @@ def parse(raw_sql, allowed_models):
             else:
                 operator = 'exact'
 
-            q_search = ("%s__%s" % (key_token.to_unicode(), operator)).encode('utf-8')
+            q_search = ("%s__%s" % (field_value, operator)).encode('utf-8')
 
         elif equality_token.match(sqlparse.tokens.Comparison, operator_map.keys()):
             operator = operator_map.get(equality_token.value, '')
 
-            q_search = ("%s__%s" % (key_token.to_unicode(), operator)).encode('utf-8')
+            q_search = ("%s__%s" % (field_value, operator)).encode('utf-8')
 
         # Needed to replace quotations, as the strings unicoded rendition is encased by them
         if equality_token.value == "!=" or negate:
@@ -88,7 +93,7 @@ def parse(raw_sql, allowed_models):
 
         while True:
             tokens = [
-                token_list.token_next_match(index, sqlparse.tokens.Keyword, ["LIKE", "NOT"]),
+                token_list.token_next_match(index, sqlparse.tokens.Keyword, ["LIKE", "NOT", "IS"]),
                 token_list.token_next_match(index, sqlparse.tokens.Comparison , operator_map.keys()),
                 token_list.token_next_by_instance(index, sqlparse.sql.Comparison),
                 token_list.token_next_by_instance(index, sqlparse.sql.Parenthesis)
@@ -116,7 +121,7 @@ def parse(raw_sql, allowed_models):
                     else:
                         (key_token, value_token) = (token_list.token_prev(index), token_list.token_next(index))
 
-                    q_object = gaaather_search_part(key_token, token, value_token, token.value.upper() == 'NOT')
+                    q_object = gather_search_part(key_token, token, value_token, token.value.upper() == 'NOT')
 
                     index = token_list.token_index(value_token)
                 elif isinstance(token, sqlparse.sql.Comparison) or isinstance(token, sqlparse.sql.Parenthesis):
